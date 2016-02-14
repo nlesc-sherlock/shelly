@@ -1,0 +1,88 @@
+---
+- hosts: all
+  remote_user: root
+  vars:
+    cran_url: http://cran-mirror.cs.uu.nl
+    cran_ppa_key: E084DAB9
+  tasks:
+    - name: Only allow incoming traffic from trusted networks
+      ufw: rule=allow src={{ item }} state=enabled
+      with_items: "{{ trusted_networks }}"
+    - name: Set hostname to fqdn
+      hostname: name='{{ facter_fqdn }}'
+    - name: Dont bind hostname to loopback
+      replace: dest=/etc/hosts regexp='^127.0.1.1 .*$' replace='' backup=yes
+    - name: Set locale
+      blockinfile:
+        dest: /etc/environment
+        block: |
+          LC_ALL="en_US.utf-8"
+    - name: Swap file
+      script: swap.sh creates=/swapfile
+    - name: Remove puppet and chef
+      apt: name={{ item }} state=absent
+      with_items:
+        - puppet
+        - chef
+    - name: Check if packages need to be autoremoved
+      command: apt-get --dry-run autoremove
+      register: check_autoremove
+      changed_when: False
+    - name: Autoremove unused packages
+      command: apt-get -y autoremove
+      when: "'packages will be REMOVED' in check_autoremove.stdout"
+    - name: Add ppa:webupd8team/java
+      apt_repository: repo=ppa:webupd8team/java
+    - name: R ppa key
+      apt_key: id="{{ cran_ppa_key }}" state=present keyserver=keyserver.ubuntu.com
+    - name: R ppa
+      apt_repository: repo='deb {{ cran_url }}/bin/linux/ubuntu trusty/' state=present
+    - name: Docker repo key
+      apt_key: keyserver=hkp://p80.pool.sks-keyservers.net:80 id=58118E89F3A912897C070ADBF76221572C52609D
+    - name: Docker repo
+      apt_repository: repo='deb https://apt.dockerproject.org/repo ubuntu-trusty main'
+    - name: Update apt cache
+      apt: update_cache=yes
+    - name: accept Oracle license
+      debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' vtype='select' value='true'
+    - name: Oracle JDK8
+      apt: name={{ item }}
+      with_items:
+        - oracle-java8-installer
+        - oracle-java8-set-default
+        - oracle-java8-unlimited-jce-policy
+    - name: NTP
+      apt: name=ntp
+    - name: numpy
+      apt: name=python-numpy
+    - name: libnet
+      apt: name=libnetlib-java
+    - name: R
+      apt: name=r-recommended
+    - name: R javareconf
+      command: R CMD javareconf
+    - name: RJava
+      apt: name=r-cran-rjava
+    - name: Docker
+      apt: name=docker-engine
+- hosts: frontend
+  remote_user: root
+  vars:
+    #ambari_repo:  http://public-repo-1.hortonworks.com/ambari/ubuntu14/2.x/updates/2.2.0.0/ambari.list
+    ambari_repo: http://dev.hortonworks.com.s3.amazonaws.com/ambari/ubuntu14/2.x/latest/2.2.1.0/ambaribn.list
+  tasks:
+    - name: Ambari repo
+      get_url: url={{ ambari_repo}} dest=/etc/apt/sources.list.d/ambari.list
+    - name: Ambari repo key
+      apt_key: keyserver=keyserver.ubuntu.com id=B9733A7A07513CAD
+    - name: Update apt cache
+      apt: update_cache=yes
+    - name: Ambari server install
+      apt: name=ambari-server
+    - name: Ambari server setup
+      command: ambari-server setup -s -j /usr/lib/jvm/java-8-oracle creates=/etc/ambari-server/conf/password.dat
+    - name: Ambari server start
+      service: name=ambari-server state=started
+
+# TODO
+# * Use ambari blueprint

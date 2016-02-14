@@ -1,0 +1,98 @@
+---
+- hosts: all
+  remote_user: root
+  tasks:
+    - name: Make libcrypto available to hadoop native
+      file: src=/lib/x86_64-linux-gnu/libcrypto.so.1.0.0 dest=/lib/x86_64-linux-gnu/libcrypto.so state=link
+    - name: Check hadoop native
+      command: hadoop checknative -a
+    - name: Allow yarn user to run docker containers
+      user: name=yarn append=yes groups=docker
+      notify:
+        - restart yarn
+    - name: Shelly user
+      user: user=shelly group=users groups=docker shell=/bin/bash uid=1100 password='{{ shelly_user_password }}'
+    - name: Shelly user loads hadoop/spark env on login
+      blockinfile:
+        dest: /home/shelly/.bashrc
+        owner: shelly
+        block: |
+          . /etc/hadoop/conf/hadoop-env.sh
+          . /etc/hadoop/conf/yarn-env.sh
+          . /etc/hadoop/conf/mapred-env.sh
+          export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+          export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+          export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native
+          . /usr/hdp/current/spark-client/conf/spark-env.sh
+
+- hosts: frontend
+  remote_user: root
+  vars:
+      spark_assembly: /usr/hdp/current/spark-client/lib/spark-assembly-1.6.0.2.4.0.0-169-hadoop2.7.1.2.4.0.0-169.jar
+      spark_on_hdfs: /hdp/apps/2.4.0.0-169/spark/spark-hdp-assembly.jar
+      cran_url: http://cran-mirror.cs.uu.nl
+  tasks:
+    - name: sparkR in PATH
+      file: src=/usr/hdp/current/spark-client/bin/sparkR dest=/usr/bin/sparkR state=link
+    - name: Check shelly user has hdfs home dir
+      command: hdfs dfs -test -e /user/shelly
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
+      register: shelly_hdfs_home_exists
+      changed_when: False
+    - name: Shelly hdfs home dir
+      command: hdfs dfs -mkdir /user/shelly
+      become: yes
+      become_user: hdfs
+      when: shelly_hdfs_home_exists|failed
+    - name: Shelly owns hdfs home dir
+      command: hdfs dfs -chown shelly /user/shelly
+      become: yes
+      become_user: hdfs
+      when: shelly_hdfs_home_exists|failed
+    - name: Check spark assembly on HDFS
+      command: hdfs dfs -test -e {{ spark_on_hdfs }}
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
+      register: spark_assemlby_on_hdfs_exists
+      changed_when: False
+    - name: Spark app dir on HDFS
+      command: hdfs dfs -mkdir /hdp/apps/2.4.0.0-169/spark
+      become: yes
+      become_user: hdfs
+      when: spark_assemlby_on_hdfs_exists|failed
+    - name: Copy spark assembly to HDFS
+      command: hdfs dfs -copyFromLocal {{ spark_assembly }} {{ spark_on_hdfs }}
+      become: yes
+      become_user: hdfs
+      when: spark_assemlby_on_hdfs_exists|failed
+    # - name: Plyr.spark deps deps
+    #   apt: pkg={{ item}}
+    #   with_items:
+    #     - libssl-dev
+    #     - libcurl4-openssl-dev
+    #     - libssh2-1-dev
+    #     - r-cran-littler
+    #     - r-cran-stringr
+    #     - r-cran-dbi
+    # - name: Install docopt R package
+    #   shell: echo 'install.packages(c("docopt"), repos="{{ cran_url }}")' | R --vanilla
+    #   args:
+    #     creates: /usr/local/lib/R/site-library/docopt
+    # - name: R javareconf
+    #   command: R CMD javareconf
+    # - name: Plyr.spark deps (https://github.com/RevolutionAnalytics/dplyr-spark)
+    #   command: /usr/lib/R/site-library/littler/examples/install2.r -r {{ cran_url }} {{ item }} creates=/usr/local/lib/R/site-library/{{ item }}
+    #   with_items:
+    #     - RJDBC
+    #     - devtools
+    # - name: Plyr.spark
+    #   shell: echo 'devtools::install_github("RevolutionAnalytics/dplyr-spark@0.3.0", subdir = "pkg")' | R --vanilla
+    #   args:
+    #     creates: /usr/local/lib/R/site-library/dplyr.spark
+
+# TODO
+# * Restart yarn using ambari api when its added to docker group, https://cwiki.apache.org/confluence/display/AMBARI/Restarting+host+components+via+the+API
+# * Add R plyr spark
