@@ -72,7 +72,11 @@ ansible-playbook --private-key=shelly.key -i hosts playbook.yml
 # Ambari setup
 
 1. Goto http://shelly.<domain>:8080 login with admin:admin.
-2. Use shelly.key as private key to register hosts
+2. Change admin password (optional)
+3. Use `shelly` as cluster name
+4. Use shelly.key as private key to register hosts
+5. Register hosts in ansible inventory
+6. Create cluster master/slave/clients as recommended by ambari
 
 Keep frontend node free from datanode,namenode
 Make sure to add clients to frontend node.
