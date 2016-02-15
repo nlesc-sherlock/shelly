@@ -43,6 +43,30 @@
       apt_repository: repo='deb https://apt.dockerproject.org/repo ubuntu-trusty main'
     - name: Update apt cache
       apt: update_cache=yes
+    - name: Install reboot notifier
+      apt: name=update-notifier-common
+    - name: Upgrade APT to the lastest packages
+      apt: upgrade=full
+    - name: Rebooting machine so new kernel is active
+      command: shutdown -r now removes=/var/run/reboot-required
+      async: 0
+      poll: 0
+      ignore_errors: true
+      register: restarted
+    - name: Waiting for reboot...
+      local_action: wait_for host={{ ansible_ssh_host | default(inventory_hostname) }} search_regex=OpenSSH port=22 delay=15 state=started
+      sudo: no
+      when: restarted.changed
+    - name: Rebooting machine so new kernel is active
+      command: shutdown -r now removes=/var/run/reboot-required
+      async: 0
+      poll: 0
+      ignore_errors: true
+      register: restarted
+    - name: Waiting for reboot...
+      local_action: wait_for host={{ ansible_ssh_host | default(inventory_hostname) }} search_regex=OpenSSH port=22 delay=15 state=started
+      sudo: no
+      when: restarted.changed
     - name: accept Oracle license
       debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' vtype='select' value='true'
     - name: Oracle JDK8
