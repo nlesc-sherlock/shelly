@@ -68,6 +68,38 @@
       become: yes
       become_user: hdfs
       when: spark_assemlby_on_hdfs_exists|failed
+    - name: Deps 4 JupyterHub notebook
+      apt: name={{ item }}
+      with_items:
+        - npm
+        - nodejs
+        - nodejs-legacy
+        - python3-pip
+        - python-pip
+    - name: configurable-http-proxy
+      npm: name=configurable-http-proxy global=yes
+    - name: Jupyter for Python 3
+      pip: name=jupyter executable=pip3
+    - name: Toree (Spark Jupyter)
+      pip: name=toree executable=pip extra_args='--pre'
+    - name: Toree to Jupyter
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/toree
+    - name: JupyterHub
+      pip: name=jupyterhub executable=pip3
+    - name: /etc/jupyterhub
+      file: path=/etc/jupyterhub state=directory
+    - name: JupyterHub config
+      command: jupyterhub --generate-config -f /etc/jupyterhub/jupyterhub.py creates=/etc/jupyterhub/jupyterhub.py
+    - name: Bind JupyterHub to all interfaces
+      blockinfile:
+        dest: /etc/jupyterhub/jupyterhub.py
+        block: |
+          c.JupyterHub.ip = '0.0.0.0'
+    - name: Start/stop script JupyterHub
+      copy: src=jupyterhub.upstart dest=/etc/init/jupyterhub.conf
+    - name: JupyterHub started
+      service: name=jupyterhub state=started
+
     # - name: Plyr.spark deps deps
     #   apt: pkg={{ item}}
     #   with_items:

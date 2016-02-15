@@ -1,0 +1,7 @@
+description "Jupyter Hub daemon"
+
+start on runlevel [2345]
+
+chdir /etc/jupyterhub
+
+exec /usr/local/bin/jupyterhub
