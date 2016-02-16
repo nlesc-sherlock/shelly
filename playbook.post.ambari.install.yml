@@ -10,12 +10,14 @@
       user: name=yarn append=yes groups=docker
       notify:
         - restart yarn
-    - name: Shelly user
-      user: user=shelly group=users groups=docker shell=/bin/bash uid=1100 password='{{ shelly_user_password }}'
-    - name: Shelly user loads hadoop/spark env on login
+    - name: Posix users
+      user: user={{ item.name }} group=users groups=docker shell=/bin/bash uid={{ item.uid }} password='{{ item.password }}'
+      with_items: "{{ users }}"
+    - name: Posix users loads hadoop/spark env on login
+      with_items: "{{ users }}"
       blockinfile:
-        dest: /home/shelly/.bashrc
-        owner: shelly
+        dest: /home/{{ item.name }}/.bashrc
+        owner: '{{ item.name }}'
         block: |
           . /etc/hadoop/conf/hadoop-env.sh
           . /etc/hadoop/conf/yarn-env.sh
@@ -35,22 +37,25 @@
     - name: sparkR in PATH
       file: src=/usr/hdp/current/spark-client/bin/sparkR dest=/usr/bin/sparkR state=link
     - name: Check shelly user has hdfs home dir
-      command: hdfs dfs -test -e /user/shelly
+      command: hdfs dfs -test -e /user/{{ item.name }}
       become: yes
       become_user: hdfs
       ignore_errors: True
-      register: shelly_hdfs_home_exists
+      register: hdfs_home_exists
+      with_items: "{{ users }}"
       changed_when: False
-    - name: Shelly hdfs home dir
-      command: hdfs dfs -mkdir /user/shelly
+    - name: hdfs home dir
+      command: hdfs dfs -mkdir /user/{{ item.item.name }}
       become: yes
       become_user: hdfs
-      when: shelly_hdfs_home_exists|failed
+      with_items: "{{ hdfs_home_exists.results }}"
+      when: item|failed
     - name: Shelly owns hdfs home dir
-      command: hdfs dfs -chown shelly /user/shelly
+      command: hdfs dfs -chown shelly /user/{{ item.item.name }}
       become: yes
       become_user: hdfs
-      when: shelly_hdfs_home_exists|failed
+      with_items: "{{ hdfs_home_exists.results }}"
+      when: item|failed
     - name: Check spark assembly on HDFS
       command: hdfs dfs -test -e {{ spark_on_hdfs }}
       become: yes
