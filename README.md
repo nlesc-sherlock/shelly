@@ -83,6 +83,12 @@ Make sure to add clients to frontend node.
 
 Increase yarn mem, CPU percent and vcores when on small VM (4Gb, 1cpu)
 
+The make sure all hdfs data nodes are used the ip->hostname and hostname->ip should be the same.
+If not add the following property to hdfs-site:
+```
+dfs.namenode.datanode.registration.ip-hostname-check=false
+```
+
 ## Multihoming
 
 Machine with multiple networks can give problems.
