@@ -9,7 +9,7 @@
     - name: Allow yarn user to run docker containers
       user: name=yarn append=yes groups=docker
       notify:
-        - restart yarn
+        - restart yarn node managers
     - name: Posix users
       user: user={{ item.name }} group=users groups=docker shell=/bin/bash uid={{ item.uid }} password='{{ item.password }}'
       with_items: "{{ users }}"
@@ -26,7 +26,7 @@
           export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
           export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native
           . /usr/hdp/current/spark-client/conf/spark-env.sh
-
+          . /usr/hdp/current/hive-client/conf/hive-env.sh
 - hosts: frontend
   remote_user: root
   vars:
@@ -89,6 +89,13 @@
       pip: name=toree executable=pip extra_args='--pre'
     - name: Toree to Jupyter
       command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/toree
+    # - name: Py Toree to Jupyter
+    #   command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --kernel_name=pytoree creates=/usr/local/share/jupyter/kernels/pytoree
+    # https://github.com/ibm-et/spark-kernel/wiki/Language-Support-on-the-Spark-Kernel
+    # - name: Py Toree kernel
+    #   copy: src=pytoree.kernel.json dest=/usr/local/share/jupyter/kernels/pytoree/kernel.json
+    # - name: R Toree to Jupyter
+    #   command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --kernel_name=rtoree creates=/usr/local/share/jupyter/kernels/rtoree
     - name: JupyterHub
       pip: name=jupyterhub executable=pip3
     - name: /etc/jupyterhub

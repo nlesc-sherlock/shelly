@@ -83,11 +83,27 @@ Make sure to add clients to frontend node.
 
 Increase yarn mem, CPU percent and vcores when on small VM (4Gb, 1cpu)
 
-The make sure all hdfs data nodes are used the ip->hostname and hostname->ip should be the same.
+## HDFS config
+
+Make sure all hdfs data nodes can lookup the ip->hostname and hostname->ip of each other.
 If not add the following property to hdfs-site:
 ```
 dfs.namenode.datanode.registration.ip-hostname-check=false
 ```
+And restart hdfs.
+
+## Yarn config
+
+node memory=6400MB
+container max mem=6500Mb
+virtual cores=2
+container max vcores=2
+yarn.nodemanager.vmem-check-enabled=true
+
+## Spark config
+
+spark.yarn.driver.memoryOverhead=768
+spark.yarn.executor.memoryOverhead=768
 
 ## Multihoming
 
