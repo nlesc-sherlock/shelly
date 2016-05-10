@@ -1,5 +1,6 @@
 ---
 trusted_networks:
+  - 145.100.58.0/24
   - 145.100.59.0/24
   - 145.100.116.0/24
   - 10.100.107.0/24
@@ -11,3 +12,4 @@ users:
   - name: shelly2
     uid: 1101
     password: $6$6/6NkDn01w$6ld/sdc/B42cVtSNFQTQLlNPYOqin8m4kluy.QbvtLraHLliTs5QaPIYJcKyYr7KKhsY2znFZLSC2YzdROKwZ.
+nfs_server: shelly1

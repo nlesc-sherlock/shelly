@@ -1,6 +1,6 @@
 ---
-- hosts: all
-  remote_user: root
+- hosts: spark
+  remote_user: {{ remote_user }}
   vars:
     cran_url: http://cran-mirror.cs.uu.nl
     cran_ppa_key: E084DAB9
@@ -90,11 +90,9 @@
     - name: Docker
       apt: name=docker-engine
 - hosts: frontend
-  remote_user: root
+  remote_user: {{ remote_user }}
   vars:
-    #ambari_repo:  http://public-repo-1.hortonworks.com/ambari/ubuntu14/2.x/updates/2.2.0.0/ambari.list
-    #ambari_repo: http://dev.hortonworks.com.s3.amazonaws.com/ambari/ubuntu14/2.x/latest/2.2.1.0/ambaribn.list
-    ambari_repo: http://public-repo-1.hortonworks.com/ambari/ubuntu14/2.x/updates/2.2.2.0/ambari.list
+    ambari_repo:  http://public-repo-1.hortonworks.com/ambari/ubuntu14/2.x/updates/2.2.2.0/ambari.list
   tasks:
     - name: Ambari repo
       get_url: url={{ ambari_repo}} dest=/etc/apt/sources.list.d/ambari.list

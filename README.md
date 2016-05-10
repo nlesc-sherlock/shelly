@@ -1,4 +1,4 @@
-Create hadoop/spark cluster using Ambari and Ansible.
+Create hadoop/spark cluster using Ambari and Docker swarm with Ansible.
 
 # Prep
 
@@ -52,11 +52,16 @@ Trusted networks and shelly user password in `group_vars/all.yml` file.
 
 Ansible inventory file `hosts` contains:
 ```
-[frontend]
+
+[spark-frontend]
 shelly.<domain>
-[backends]
+[spark-backends]
 shelly1.<domain>
 shelly2.<domain>
+[docker-manager]
+emma0.<domain>
+[docker-node]
+emma1.<domain>
 ```
 
 Sanity check
@@ -83,6 +88,14 @@ Make sure to add clients to frontend node.
 
 Increase yarn mem, CPU percent and vcores when on small VM (4Gb, 1cpu)
 
+## Hive
+
+Mysql root:<password>
+
+## Grafana
+
+Grafana admin:<password>
+
 ## HDFS config
 
 Make sure all hdfs data nodes can lookup the ip->hostname and hostname->ip of each other.
@@ -91,6 +104,7 @@ If not add the following property to hdfs-site:
 dfs.namenode.datanode.registration.ip-hostname-check=false
 ```
 And restart hdfs.
+
 
 ## Yarn config
 
@@ -123,6 +137,16 @@ When ambari cluster is up and running.
 ansible-playbook --private-key=shelly.key -i hosts playbook.post.ambari.install.yml
 ```
 
+# Ambari files view
+
+0. See http://docs.hortonworks.com/HDPDocuments/Ambari-2.1.0.0/bk_ambari_views_guide/content/_configuring_your_cluster_for_files_view.html
+
+1. Create shelly ambari user
+2. Allow shelly user permission on files view.
+2.1. Goto http://shelly1.sherlock-nlesc.vm.surfsara.nl:8080/views/ADMIN_VIEW/2.2.2.0/INSTANCE/#/clusters/shelly/manageAccess add shelly as read-only
+2.2. Goto http://shelly1.sherlock-nlesc.vm.surfsara.nl:8080/views/ADMIN_VIEW/2.2.2.0/INSTANCE/#/views/FILES/versions/1.0.0/instances/AUTO_FILES_INSTANCE/edit grant shelly with Use permission
+
+
 # Dplyr spark
 
 spark backend for dplyr, https://github.com/RevolutionAnalytics/dplyr-spark
@@ -135,3 +159,17 @@ library(dplyr.spark)
 my_db = src_SparkSQL()
 Error in .jfindClass(as.character(driverClass)[1]) : class not found
 ```
+
+# Docker swarm
+
+Create swarm token with:
+```
+SWARM_TOKEN=$(docker run --rm swarm create)
+```
+
+Provision with:
+```
+ansible-playbook --private-key=shelly.key -i hosts -e swarm_token=$SWARM_TOKEN docker-playbook.yml
+```
+
+The `docker-manager` manager host has swarm running on port 4000.
