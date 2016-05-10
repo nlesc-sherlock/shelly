@@ -88,14 +88,20 @@
     - name: Toree (Spark Jupyter)
       pip: name=toree executable=pip extra_args='--pre'
     - name: Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/toree
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/apache_toree_scala
     - name: Py Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client  --interpreters=PySpark
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=PySpark creates=/usr/local/share/jupyter/kernels/apache_toree_pyspark
+    - name: SQL Toree to Jupyter
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=SQL creates=/usr/local/share/jupyter/kernels/apache_toree_sql
     # https://github.com/ibm-et/spark-kernel/wiki/Language-Support-on-the-Spark-Kernel
     # - name: Py Toree kernel
     #   copy: src=pytoree.kernel.json dest=/usr/local/share/jupyter/kernels/pytoree/kernel.json
     # - name: R Toree to Jupyter
     #   command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --kernel_name=rtoree creates=/usr/local/share/jupyter/kernels/rtoree
+    - name: ipykernel for Python 2
+      pip: name=ipykernel executable=pip
+    - name: Python 2 to Jupyter
+      shell: /usr/bin/python2 -m ipykernel install creates=/usr/local/share/jupyter/kernels/python2
     - name: JupyterHub
       pip: name=jupyterhub executable=pip3
     - name: /etc/jupyterhub
