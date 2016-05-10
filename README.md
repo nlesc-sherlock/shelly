@@ -103,21 +103,33 @@ If not add the following property to hdfs-site:
 ```
 dfs.namenode.datanode.registration.ip-hostname-check=false
 ```
-And restart hdfs.
 
+NFS Gateway complained without this setting:
+```
+dfs.access.time.precision=1
+```
+
+And restart hdfs.
 
 ## Yarn config
 
+```
 node memory=6400MB
 container max mem=6500Mb
 virtual cores=2
 container max vcores=2
 yarn.nodemanager.vmem-check-enabled=true
-
+```
 ## Spark config
 
+```
 spark.yarn.driver.memoryOverhead=768
 spark.yarn.executor.memoryOverhead=768
+```
+
+Jupyter notebooks use very low amount of memory. Increase default with:
+```
+```
 
 ## Multihoming
 
