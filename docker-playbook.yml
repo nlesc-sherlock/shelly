@@ -1,0 +1,87 @@
+---
+- hosts: docker
+  remote_user: {{ remote_user }}
+  become: true
+  tasks:
+    - name: Only allow incoming traffic from trusted networks
+      ufw: rule=allow src={{ item }} state=enabled
+      with_items: "{{ trusted_networks }}"
+    - name: Set hostname to fqdn
+      hostname: name='{{ inventory_hostname }}'
+    - name: Dont bind hostname to loopback
+      replace: dest=/etc/hosts regexp='^127.0.1.1 .*$' replace='' backup=yes
+    - name: Set locale
+      blockinfile:
+        dest: /etc/environment
+        block: |
+          LC_ALL="en_US.utf-8"
+    - name: Remove puppet and chef
+      apt: name={{ item }} state=absent
+      with_items:
+        - puppet
+        - chef
+    - name: Check if packages need to be autoremoved
+      command: apt-get --dry-run autoremove
+      register: check_autoremove
+      changed_when: False
+    - name: Autoremove unused packages
+      command: apt-get -y autoremove
+      when: "'packages will be REMOVED' in check_autoremove.stdout"
+    - name: Docker repo key
+      apt_key: keyserver=hkp://p80.pool.sks-keyservers.net:80 id=58118E89F3A912897C070ADBF76221572C52609D
+    - name: Docker repo
+      apt_repository: repo='deb https://apt.dockerproject.org/repo ubuntu-trusty main'
+    - name: Update apt cache
+      apt: update_cache=yes
+    - name: Install reboot notifier
+      apt: name=update-notifier-common
+    - name: Upgrade APT to the lastest packages
+      apt: upgrade=full
+    - name: Docker
+      apt: name=docker-engine
+    - name: NTP
+      apt: name=ntp
+    - name: pip
+      apt: name=python-pip
+    - name: docker-py
+      pip: name=docker-py
+    - name: Posix users which can use docker
+      user: user={{ item.name }} group=users groups=docker shell=/bin/bash uid={{ item.uid }} password='{{ item.password }}'
+      with_items: "{{ users }}"
+    - name: Set docker tcp
+      blockinfile:
+        dest: /etc/default/docker
+        block: |
+          DOCKER_OPTS="-H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock"
+    - name: Docker
+      service: name=docker state=started
+    - name: NFS client
+      apt: name=nfs-client
+    - name: HDFS mountpoint
+      file: name=/data state=directory
+    - name: Mount HDFS with NFS
+      mount: name=/data src='{{ nfs_server }}.{{ ansible_domain }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
+- hosts: docker-manager
+  remote_user: {{ remote_user }}
+  become: true
+  tasks:
+    - name: swarm manage
+      docker:
+        name: swarm-manage
+        image:  swarm
+        state: started
+        command: manage -H :4000 --advertise {{ ansible_fqdn }}:4000 token://{{ swarm_token }}
+        expose:
+          - 4000
+        ports:
+          - 4000:4000
+- hosts: docker-nodes
+  remote_user: {{ remote_user }}
+  become: true
+  tasks:
+    - name: swarm join
+      docker:
+        name: swarm-join
+        image:  swarm
+        state: started
+        command: join --advertise {{ ansible_fqdn }}:2375 token://{{ swarm_token }}

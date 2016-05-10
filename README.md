@@ -1,4 +1,4 @@
-Create hadoop/spark cluster using Ambari and Ansible.
+Create hadoop/spark cluster using Ambari and Docker swarm with Ansible.
 
 # Prep
 
@@ -52,11 +52,16 @@ Trusted networks and shelly user password in `group_vars/all.yml` file.
 
 Ansible inventory file `hosts` contains:
 ```
-[frontend]
+
+[spark-frontend]
 shelly.<domain>
-[backends]
+[spark-backends]
 shelly1.<domain>
 shelly2.<domain>
+[docker-manager]
+emma0.<domain>
+[docker-node]
+emma1.<domain>
 ```
 
 Sanity check
@@ -154,3 +159,17 @@ library(dplyr.spark)
 my_db = src_SparkSQL()
 Error in .jfindClass(as.character(driverClass)[1]) : class not found
 ```
+
+# Docker swarm
+
+Create swarm token with:
+```
+SWARM_TOKEN=$(docker run --rm swarm create)
+```
+
+Provision with:
+```
+ansible-playbook --private-key=shelly.key -i hosts -e swarm_token=$SWARM_TOKEN docker-playbook.yml
+```
+
+The `docker-manager` manager host has swarm running on port 4000.
