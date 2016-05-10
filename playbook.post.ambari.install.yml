@@ -30,8 +30,8 @@
 - hosts: frontend
   remote_user: root
   vars:
-      spark_assembly: /usr/hdp/current/spark-client/lib/spark-assembly-1.6.0.2.4.0.0-169-hadoop2.7.1.2.4.0.0-169.jar
-      spark_on_hdfs: /hdp/apps/2.4.0.0-169/spark/spark-hdp-assembly.jar
+      spark_assembly: /usr/hdp/current/spark-client/lib/spark-assembly-1.6.1.2.4.2.0-258-hadoop2.7.1.2.4.2.0-258.jar
+      spark_on_hdfs: /hdp/apps/2.4.2.0-258/spark/spark-hdp-assembly.jar
       cran_url: http://cran-mirror.cs.uu.nl
   tasks:
     - name: sparkR in PATH
@@ -64,7 +64,7 @@
       register: spark_assemlby_on_hdfs_exists
       changed_when: False
     - name: Spark app dir on HDFS
-      command: hdfs dfs -mkdir /hdp/apps/2.4.0.0-169/spark
+      command: hdfs dfs -mkdir /hdp/apps/2.4.2.0-258/spark
       become: yes
       become_user: hdfs
       when: spark_assemlby_on_hdfs_exists|failed
@@ -89,8 +89,8 @@
       pip: name=toree executable=pip extra_args='--pre'
     - name: Toree to Jupyter
       command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/toree
-    # - name: Py Toree to Jupyter
-    #   command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --kernel_name=pytoree creates=/usr/local/share/jupyter/kernels/pytoree
+    - name: Py Toree to Jupyter
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client  --interpreters=PySpark
     # https://github.com/ibm-et/spark-kernel/wiki/Language-Support-on-the-Spark-Kernel
     # - name: Py Toree kernel
     #   copy: src=pytoree.kernel.json dest=/usr/local/share/jupyter/kernels/pytoree/kernel.json
@@ -111,6 +111,18 @@
       copy: src=jupyterhub.upstart dest=/etc/init/jupyterhub.conf
     - name: JupyterHub started
       service: name=jupyterhub state=started
+    - name: Admin user has hdfs home dir
+      command: hdfs dfs -mkdir /user/admin
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
+    - name: Admin user owns hdfs home dir
+      command: hdfs dfs -chown admin:hadoop /user/admin
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
+    - name: Findspark
+      pip: name=findspark executable=pip3
 
     # - name: Plyr.spark deps deps
     #   apt: pkg={{ item}}
