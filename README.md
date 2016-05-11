@@ -126,9 +126,13 @@ yarn.nodemanager.vmem-check-enabled=true
 spark.yarn.driver.memoryOverhead=768
 spark.yarn.executor.memoryOverhead=768
 ```
-
 Jupyter notebooks use very low amount of memory. Increase default with:
 ```
+```
+
+Ansible puts spark assembly jar in hdfs make Spark aware of it.
+```
+spark.yarn.jar=hdfs:///hdp/apps/2.4.2.0-258/spark/spark-hdp-assembly.jar
 ```
 
 ## Multihoming
