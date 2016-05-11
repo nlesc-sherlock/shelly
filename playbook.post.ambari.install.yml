@@ -1,6 +1,6 @@
 ---
 - hosts: spark
-  remote_user: {{ remote_user }}
+  remote_user: '{{ remote_user }}'
   tasks:
     - name: Make libcrypto available to hadoop native
       file: src=/lib/x86_64-linux-gnu/libcrypto.so.1.0.0 dest=/lib/x86_64-linux-gnu/libcrypto.so state=link
@@ -28,7 +28,7 @@
           . /usr/hdp/current/spark-client/conf/spark-env.sh
           . /usr/hdp/current/hive-client/conf/hive-env.sh
 - hosts: spark-frontend
-  remote_user: {{ remote_user }}
+  remote_user: '{{ remote_user }}'
   vars:
       spark_assembly: /usr/hdp/current/spark-client/lib/spark-assembly-1.6.1.2.4.2.0-258-hadoop2.7.1.2.4.2.0-258.jar
       spark_on_hdfs: /hdp/apps/2.4.2.0-258/spark/spark-hdp-assembly.jar

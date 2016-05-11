@@ -1,6 +1,6 @@
 ---
 - hosts: docker
-  remote_user: {{ remote_user }}
+  remote_user: '{{ remote_user }}'
   become: true
   tasks:
     - name: Only allow incoming traffic from trusted networks
@@ -62,26 +62,22 @@
     - name: Mount HDFS with NFS
       mount: name=/data src='{{ nfs_server }}.{{ ansible_domain }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
 - hosts: docker-manager
-  remote_user: {{ remote_user }}
+  remote_user: '{{ remote_user }}'
   become: true
   tasks:
+    - name: Swarm config dir
+      file: name=/etc/docker-swarm state=directory
+    - name: Nodes of swarm
+      template: src=swarm.hosts.j2 dest=/etc/docker-swarm/hosts
     - name: swarm manage
       docker:
         name: swarm-manage
         image:  swarm
         state: started
-        command: manage -H :4000 --advertise {{ ansible_fqdn }}:4000 token://{{ swarm_token }}
+        command: manage -H :4000 --advertise {{ ansible_fqdn }}:4000 file:///etc/docker-swarm/hosts
         expose:
           - 4000
         ports:
           - 4000:4000
-- hosts: docker-nodes
-  remote_user: {{ remote_user }}
-  become: true
-  tasks:
-    - name: swarm join
-      docker:
-        name: swarm-join
-        image:  swarm
-        state: started
-        command: join --advertise {{ ansible_fqdn }}:2375 token://{{ swarm_token }}
+        volumes:
+          - /etc/docker-swarm:/etc/docker-swarm
