@@ -71,7 +71,7 @@ ansible all --private-key=shelly.key -u root -i hosts -m ping
 
 Install ambari server, docker, R, etc.
 ```
-ansible-playbook --private-key=shelly.key -i hosts playbook.yml
+ansible-playbook --private-key=shelly.key -i hosts spark-playbook.yml
 ```
 
 # Ambari setup
@@ -189,3 +189,6 @@ ansible-playbook --private-key=shelly.key -i hosts -e swarm_token=$SWARM_TOKEN d
 ```
 
 The `docker-manager` manager host has swarm running on port 4000.
+
+The docker machines will have a `/shelly/data` directory which is a nfs mount of hdfs.
+The docker machines will have a `/shelly/config` directory which contains config files for hdfs/yarn/spark.

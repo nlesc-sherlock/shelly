@@ -93,11 +93,8 @@
       command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=PySpark creates=/usr/local/share/jupyter/kernels/apache_toree_pyspark
     - name: SQL Toree to Jupyter
       command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=SQL creates=/usr/local/share/jupyter/kernels/apache_toree_sql
-    # https://github.com/ibm-et/spark-kernel/wiki/Language-Support-on-the-Spark-Kernel
-    # - name: Py Toree kernel
-    #   copy: src=pytoree.kernel.json dest=/usr/local/share/jupyter/kernels/pytoree/kernel.json
-    # - name: R Toree to Jupyter
-    #   command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --kernel_name=rtoree creates=/usr/local/share/jupyter/kernels/rtoree
+    - name: SparkR Toree to Jupyter
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=SparkR creates=/usr/local/share/jupyter/kernels/apache_toree_sparkr
     - name: ipykernel for Python 2
       pip: name=ipykernel executable=pip
     - name: Python 2 to Jupyter
@@ -127,9 +124,37 @@
       become: yes
       become_user: hdfs
       ignore_errors: True
+    - name: Root user has hdfs home dir
+      command: hdfs dfs -mkdir /user/root
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
+    - name: Root user owns hdfs home dir
+      command: hdfs dfs -chown root:hadoop /user/admin
+      become: yes
+      become_user: hdfs
+      ignore_errors: True
     - name: Findspark
       pip: name=findspark executable=pip3
-
+    - name: Hadoop config 2 local
+      fetch: src=/etc/hadoop/conf/{{ item }} dest=shelly-conf/hadoop/ flat=yes
+      with_items:
+        - capacity-scheduler.xml
+        - core-site.xml
+        - hadoop-env.sh
+        - hdfs-site.xml
+        - log4j.properties
+        - yarn-env.sh
+        - yarn-site.xml
+        - topology_mappings.data
+        - topology_script.py
+    - name: Spark config 2 local
+      fetch: src=/etc/spark/conf/{{ item }} dest=shelly-conf/spark/ flat=yes
+      with_items:
+        - spark-defaults.conf
+        - spark-env.sh
+        - metrics.properties
+        - log4j.properties
     # - name: Plyr.spark deps deps
     #   apt: pkg={{ item}}
     #   with_items:

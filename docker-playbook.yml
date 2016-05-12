@@ -57,10 +57,56 @@
       service: name=docker state=started
     - name: NFS client
       apt: name=nfs-client
+    - name: Shelly stuff
+      file: name=/shelly state=directory
     - name: HDFS mountpoint
-      file: name=/data state=directory
+      file: name=/shelly/data state=directory
     - name: Mount HDFS with NFS
-      mount: name=/data src='{{ nfs_server }}.{{ ansible_domain }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
+      mount: name=/shelly/data src='{{ nfs_server }}.{{ ansible_domain }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
+    - name: Hadoop/spark config dir
+      file: name=/shelly/config state=directory
+    - name: Hadoop config 2 local
+      copy: src=shelly-conf/hadoop/{{ item }} dest=/shelly/config/
+      with_items:
+        - capacity-scheduler.xml
+        - core-site.xml
+        - hadoop-env.sh
+        - hdfs-site.xml
+        - log4j.properties
+        - yarn-env.sh
+        - yarn-site.xml
+        - topology_mappings.data
+        - topology_script.py
+    - name: Spark config 2 local
+      copy: src=shelly-conf/spark/{{ item }} dest=/shelly/config/
+      with_items:
+        - spark-defaults.conf
+        - spark-env.sh
+    - name: spark-metrics.properties 2 machine
+      copy: src=shelly-conf/spark/metrics.properties dest=/shelly/config/metrics.properties
+    - name: spark-log4j.properties 2 machine
+      copy: src=shelly-conf/spark/log4j.properties dest=/shelly/config/spark-log4j.properties
+    - name: Disable JAVA_HOME
+      lineinfile: dest=/shelly/config/{{ item }} regexp='export JAVA_HOME=/usr/lib/jvm/java-8-oracle' line='#export JAVA_HOME=/usr/lib/jvm/java-8-oracle'
+      with_items:
+        - hadoop-env.sh
+        - yarn-env.sh
+        - spark-env.sh
+    - name: hdp version
+      blockinfile:
+        dest: /shelly/config/spark-defaults.conf
+        block: |
+          spark.driver.extraJavaOptions -Dhdp.version={{ hdp_version }}
+          spark.yarn.am.extraJavaOptions -Dhdp.version={{ hdp_version }}
+    - name: Disble topology_script
+      blockinfile:
+        dest: /shelly/config/core-site.xml
+        state: absent
+        block: |
+          <property>
+            <name>net.topology.script.file.name</name>
+            <value>/etc/hadoop/conf/topology_script.py</value>
+          </property>
 - hosts: docker-manager
   remote_user: '{{ remote_user }}'
   become: true

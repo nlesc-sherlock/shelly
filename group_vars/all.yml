@@ -13,3 +13,4 @@ users:
     uid: 1101
     password: $6$6/6NkDn01w$6ld/sdc/B42cVtSNFQTQLlNPYOqin8m4kluy.QbvtLraHLliTs5QaPIYJcKyYr7KKhsY2znFZLSC2YzdROKwZ.
 nfs_server: shelly1
+hdp_version: 2.4.2.0-258
