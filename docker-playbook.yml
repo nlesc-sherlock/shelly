@@ -62,7 +62,7 @@
     - name: HDFS mountpoint
       file: name=/shelly/data state=directory
     - name: Mount HDFS with NFS
-      mount: name=/shelly/data src='{{ nfs_server }}.{{ ansible_domain }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
+      mount: name=/shelly/data src='{{ nfs_server }}:/' state=mounted fstype=nfs opts=vers=3,proto=tcp,nolock
     - name: Hadoop/spark config dir
       file: name=/shelly/config state=directory
     - name: Hadoop config 2 local

@@ -8,8 +8,6 @@
       command: hadoop checknative -a
     - name: Allow yarn user to run docker containers
       user: name=yarn append=yes groups=docker
-      notify:
-        - restart yarn node managers
     - name: Posix users
       user: user={{ item.name }} group=users groups=docker shell=/bin/bash uid={{ item.uid }} password='{{ item.password }}'
       with_items: "{{ users }}"
@@ -25,17 +23,13 @@
           export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
           export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
           export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native
-          . /usr/hdp/current/spark-client/conf/spark-env.sh
+          . /usr/hdp/current/spark2-client/conf/spark-env.sh
           . /usr/hdp/current/hive-client/conf/hive-env.sh
 - hosts: spark-frontend
   remote_user: '{{ remote_user }}'
   vars:
-      spark_assembly: /usr/hdp/current/spark-client/lib/spark-assembly-1.6.1.2.4.2.0-258-hadoop2.7.1.2.4.2.0-258.jar
-      spark_on_hdfs: /hdp/apps/2.4.2.0-258/spark/spark-hdp-assembly.jar
       cran_url: http://cran-mirror.cs.uu.nl
   tasks:
-    - name: sparkR in PATH
-      file: src=/usr/hdp/current/spark-client/bin/sparkR dest=/usr/bin/sparkR state=link
     - name: Check shelly user has hdfs home dir
       command: hdfs dfs -test -e /user/{{ item.name }}
       become: yes
@@ -56,23 +50,6 @@
       become_user: hdfs
       with_items: "{{ hdfs_home_exists.results }}"
       when: item|failed
-    - name: Check spark assembly on HDFS
-      command: hdfs dfs -test -e {{ spark_on_hdfs }}
-      become: yes
-      become_user: hdfs
-      ignore_errors: True
-      register: spark_assemlby_on_hdfs_exists
-      changed_when: False
-    - name: Spark app dir on HDFS
-      command: hdfs dfs -mkdir /hdp/apps/2.4.2.0-258/spark
-      become: yes
-      become_user: hdfs
-      when: spark_assemlby_on_hdfs_exists|failed
-    - name: Copy spark assembly to HDFS
-      command: hdfs dfs -copyFromLocal {{ spark_assembly }} {{ spark_on_hdfs }}
-      become: yes
-      become_user: hdfs
-      when: spark_assemlby_on_hdfs_exists|failed
     - name: Deps 4 JupyterHub notebook
       apt: name={{ item }}
       with_items:
@@ -81,20 +58,23 @@
         - nodejs-legacy
         - python3-pip
         - python-pip
+        - libffi-dev
     - name: configurable-http-proxy
       npm: name=configurable-http-proxy global=yes
+    # - name: Repair pip3
+    #   shell: apt-get purge -y python3-pip && curl https://bootstrap.pypa.io/get-pip.py && python3 ./get-pip.py && apt-get install python3-pip
     - name: Jupyter for Python 3
       pip: name=jupyter executable=pip3
     - name: Toree (Spark Jupyter)
       pip: name=toree executable=pip extra_args='--pre'
     - name: Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client creates=/usr/local/share/jupyter/kernels/apache_toree_scala
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark2-client creates=/usr/local/share/jupyter/kernels/apache_toree_scala
     - name: Py Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=PySpark creates=/usr/local/share/jupyter/kernels/apache_toree_pyspark
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark2-client --interpreters=PySpark creates=/usr/local/share/jupyter/kernels/apache_toree_pyspark
     - name: SQL Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=SQL creates=/usr/local/share/jupyter/kernels/apache_toree_sql
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark2-client --interpreters=SQL creates=/usr/local/share/jupyter/kernels/apache_toree_sql
     - name: SparkR Toree to Jupyter
-      command: jupyter toree install --spark_home=/usr/hdp/current/spark-client --interpreters=SparkR creates=/usr/local/share/jupyter/kernels/apache_toree_sparkr
+      command: jupyter toree install --spark_home=/usr/hdp/current/spark2-client --interpreters=SparkR creates=/usr/local/share/jupyter/kernels/apache_toree_sparkr
     - name: ipykernel for Python 2
       pip: name=ipykernel executable=pip
     - name: Python 2 to Jupyter
@@ -149,7 +129,7 @@
         - topology_mappings.data
         - topology_script.py
     - name: Spark config 2 local
-      fetch: src=/etc/spark/conf/{{ item }} dest=shelly-conf/spark/ flat=yes
+      fetch: src=/etc/spark2/conf/{{ item }} dest=shelly-conf/spark/ flat=yes
       with_items:
         - spark-defaults.conf
         - spark-env.sh

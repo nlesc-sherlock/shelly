@@ -71,7 +71,7 @@ ansible all --private-key=shelly.key -u root -i hosts -m ping
 
 Install ambari server, docker, R, etc.
 ```
-ansible-playbook --private-key=shelly.key -i hosts spark-playbook.yml
+ansible-playbook -e remote_user=root --private-key=shelly.key -i hosts spark-playbook.yml
 ```
 
 # Ambari setup
@@ -130,11 +130,6 @@ Jupyter notebooks use very low amount of memory. Increase default with:
 ```
 ```
 
-Ansible puts spark assembly jar in hdfs make Spark aware of it.
-```
-spark.yarn.jar=hdfs:///hdp/apps/2.4.2.0-258/spark/spark-hdp-assembly.jar
-```
-
 ## Multihoming
 
 Machine with multiple networks can give problems.
@@ -150,7 +145,7 @@ For yarn/mapred check props mentioned on http://hortonworks.com/blog/multihoming
 When ambari cluster is up and running.
 
 ```
-ansible-playbook --private-key=shelly.key -i hosts playbook.post.ambari.install.yml
+ansible-playbook -e remote_user=root --private-key=shelly.key -i hosts playbook.post.ambari.install.yml
 ```
 
 # Ambari files view
@@ -185,7 +180,7 @@ SWARM_TOKEN=$(docker run --rm swarm create)
 
 Provision with:
 ```
-ansible-playbook --private-key=shelly.key -i hosts -e swarm_token=$SWARM_TOKEN docker-playbook.yml
+ansible-playbook -e remote_user=root -e nfs_server=192.168.1.119 --private-key=shelly.key -i hosts -e swarm_token=$SWARM_TOKEN docker-playbook.yml
 ```
 
 The `docker-manager` manager host has swarm running on port 4000.
